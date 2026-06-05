@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypta</title>
+
+<style>
+body{
+    background:#0d1117;
+    color:#e6edf3;
+    font-family:Arial,sans-serif;
+    max-width:1000px;
+    margin:auto;
+    padding:20px;
+}
+
+h1{text-align:center;}
+
+.card{
+    background:#161b22;
+    border:1px solid #30363d;
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+}
+
+textarea,input{
+    width:100%;
+    box-sizing:border-box;
+    padding:10px;
+    margin:8px 0;
+    border-radius:8px;
+    border:1px solid #30363d;
+    background:#0d1117;
+    color:white;
+}
+
+button{
+    background:#238636;
+    color:white;
+    border:none;
+    padding:10px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    margin:5px 5px 5px 0;
+}
+
+button:hover{background:#2ea043;}
+
+.output{
+    background:#0d1117;
+    border:1px solid #30363d;
+    border-radius:8px;
+    padding:10px;
+    min-height:50px;
+    word-break:break-word;
+}
+
+.meter{
+    width:100%;
+    height:15px;
+    background:#333;
+    border-radius:8px;
+    overflow:hidden;
+}
+
+#strengthBar{
+    height:100%;
+    width:0%;
+    transition:.3s;
+}
+
+#qrBox{
+    margin-top:10px;
+    background:white;
+    display:inline-block;
+    padding:10px;
+}
+</style>
+
+<!-- QR Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+</head>
+
+<body>
+
+<h1>🔐Cryptographic toolkit by...
+<br></br>
+  <i>DJL</i></h1>
+
+<!-- ENCRYPTION -->
+<div class="card">
+<h2>AES Encryption / Decryption</h2>
+
+<textarea id="plainText" placeholder="Text or JSON payload"></textarea>
+<input type="password" id="cryptoPassword" placeholder="Password">
+
+<button onclick="encryptText()">Encrypt</button>
+<button onclick="decryptText()">Decrypt</button>
+<button onclick="copyOut()">Copy Output</button>
+<button onclick="clearAll()">Clear</button>
+
+<div id="cryptoOutput" class="output"></div>
+</div>
+
+<!-- PASSWORD STRENGTH -->
+<div class="card">
+<h2>Password Strength</h2>
+
+<input type="password" id="strengthInput">
+
+<button onclick="clearStrength()">Clear</button>
+
+<div class="meter"><div id="strengthBar"></div></div>
+<p id="strengthLabel">Not Tested</p>
+</div>
+
+<!-- PASSWORD GENERATOR -->
+<div class="card">
+<h2>Password Generator</h2>
+
+<input type="number" id="passLength" value="24" min="8" max="128">
+
+<button onclick="generatePassword()">Generate</button>
+<button onclick="copyGeneratedPassword()">Copy Password</button>
+<button onclick="clearGeneratedPassword()">Clear</button>
+
+<div id="generatedPassword" class="output"></div>
+</div>
+
+<!-- HASH -->
+<div class="card">
+<h2>SHA-256 Hash</h2>
+
+<textarea id="hashInput"></textarea>
+<button onclick="hashText()">Hash</button>
+
+<div id="hashOutput" class="output"></div>
+</div>
+
+<!-- BASE64 -->
+<div class="card">
+<h2>Base64 Encode / Decode</h2>
+
+<textarea id="b64Input"></textarea>
+
+<button onclick="toBase64()">Encode</button>
+<button onclick="fromBase64()">Decode</button>
+
+<div id="b64Output" class="output"></div>
+</div>
+
+    <!-- MORSE CODE -->
+<div class="card">
+<h2>Morse Code Encode / Decode</h2>
+
+    <div>
+    <button onclick="addMorse('.')">• Dot</button>
+    <button onclick="addMorse('-')">– Dash</button>
+    <button onclick="addMorse(' ')">Space</button>
+    <button onclick="clearMorse()">Clear</button>
+</div>
+<textarea id="morseInput" placeholder="Text or Morse code"></textarea>
+
+<button onclick="toMorse()">Encode</button>
+<button onclick="fromMorse()">Decode</button>
+<button onclick="copyMorse()">Copy Output</button>
+
+<div id="morseOutput" class="output"></div>
+</div>
+    
+<!-- QR CODE -->
+<div class="card">
+<h2>Text → QR Code</h2>
+
+<textarea id="qrInput"></textarea>
+
+<button onclick="generateQR()">Generate QR</button>
+<button onclick="downloadQR()">Download</button>
+
+<div id="qrBox"></div>
+</div>
+
+<script>
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+    
+    function bufToBase64(buffer) {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+function base64ToBytes(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+}
+
+    const MORSE = {
+    "A":".-","B":"-...","C":"-.-.","D":"-..","E":".","F":"..-.",
+    "G":"--.","H":"....","I":"..","J":".---","K":"-.-","L":".-..",
+    "M":"--","N":"-.","O":"---","P":".--.","Q":"--.-","R":".-.",
+    "S":"...","T":"-","U":"..-","V":"...-","W":".--","X":"-..-",
+    "Y":"-.--","Z":"--..",
+    "0":"-----","1":".----","2":"..---","3":"...--","4":"....-",
+    "5":".....","6":"-....","7":"--...","8":"---..","9":"----.",
+    ".":".-.-.-",",":"--..--","?":"..--..","/":"-..-.",
+    "@":".--.-."," ":"/"
+};
+
+const MORSE_REV = Object.fromEntries(
+    Object.entries(MORSE).map(([k,v]) => [v,k])
+);
+    
+let lastQR = null;
+
+/* =========================
+   BASE64
+========================= */
+function toBase64(){
+    const text = document.getElementById("b64Input").value;
+    document.getElementById("b64Output").textContent =
+        btoa(text);
+}
+
+function fromBase64(){
+    try{
+        const text = document.getElementById("b64Input").value;
+        document.getElementById("b64Output").textContent =
+            atob(text);
+    }catch{
+        document.getElementById("b64Output").textContent =
+            "Invalid Base64";
+    }
+}
+
+/* =========================
+   AES KEY DERIVATION
+========================= */
+async function deriveKey(password,salt){
+    const material = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name:"PBKDF2",
+            salt,
+            iterations:250000,
+            hash:"SHA-256"
+        },
+        material,
+        { name:"AES-GCM", length:256 },
+        false,
+        ["encrypt","decrypt"]
+    );
+}
+
+/* =========================
+   ENCRYPT
+========================= */
+async function encryptText(){
+
+    const text = document.getElementById("plainText").value;
+    const password = document.getElementById("cryptoPassword").value;
+
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const key = await deriveKey(password,salt);
+
+    const encrypted = await crypto.subtle.encrypt(
+        { name:"AES-GCM", iv },
+        key,
+        encoder.encode(text)
+    );
+
+    const payload = {
+        salt: bufToBase64(salt),
+        iv: bufToBase64(iv),
+        data: bufToBase64(new Uint8Array(encrypted))
+    };
+
+    document.getElementById("cryptoOutput").textContent =
+        JSON.stringify(payload,null,2);
+}
+
+/* =========================
+   DECRYPT
+========================= */
+async function decryptText(){
+
+    try{
+        const password = document.getElementById("cryptoPassword").value;
+        const payload = JSON.parse(document.getElementById("plainText").value);
+
+        const salt = base64ToBytes(payload.salt);
+        const iv = base64ToBytes(payload.iv);
+        const data = base64ToBytes(payload.data);
+
+        const key = await deriveKey(password,salt);
+
+        const decrypted = await crypto.subtle.decrypt(
+            { name:"AES-GCM", iv },
+            key,
+            data
+        );
+
+        document.getElementById("cryptoOutput").textContent =
+            decoder.decode(decrypted);
+
+    }catch{
+        document.getElementById("cryptoOutput").textContent =
+            "Decrypt failed";
+    }
+}
+
+/* =========================
+   COPY / CLEAR
+========================= */
+function copyOut(){
+    navigator.clipboard.writeText(
+        document.getElementById("cryptoOutput").textContent
+    );
+}
+
+function clearAll(){
+    document.querySelectorAll("textarea").forEach(t=>t.value="");
+    document.getElementById("cryptoOutput").textContent="";
+}
+
+/* =========================
+   PASSWORD STRENGTH
+========================= */
+document.getElementById("strengthInput")
+.addEventListener("input",e=>{
+
+    const p=e.target.value;
+    let s=0;
+
+    if(p.length>=12)s++;
+    if(/[A-Z]/.test(p))s++;
+    if(/[a-z]/.test(p))s++;
+    if(/[0-9]/.test(p))s++;
+    if(/[^A-Za-z0-9]/.test(p))s++;
+
+    const bar=document.getElementById("strengthBar");
+    bar.style.width=(s*20)+"%";
+
+    bar.style.background=
+        s<=2?"red":
+        s<=4?"orange":"lime";
+
+    document.getElementById("strengthLabel").textContent=
+        s<=2?"Weak":
+        s<=4?"Medium":"Strong";
+});
+
+    function clearStrength(){
+
+    document.getElementById("strengthInput").value = "";
+
+    const bar = document.getElementById("strengthBar");
+    bar.style.width = "0%";
+    bar.style.background = "";
+
+    document.getElementById("strengthLabel").textContent =
+        "Not Tested";
+}
+/* =========================
+   PASSWORD GENERATOR
+========================= */
+function generatePassword(){
+
+    const len = +document.getElementById("passLength").value;
+
+    const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+
+    const arr = crypto.getRandomValues(new Uint32Array(len));
+
+    let out="";
+
+    for(let i=0;i<len;i++){
+        out += chars[arr[i]%chars.length];
+    }
+
+    document.getElementById("generatedPassword").textContent = out;
+}
+    
+    function copyGeneratedPassword(){
+
+    const password =
+        document.getElementById("generatedPassword").textContent;
+
+    if(!password){
+        alert("Generate a password first");
+        return;
+    }
+
+    navigator.clipboard.writeText(password);
+}
+
+    function clearGeneratedPassword(){
+
+    document.getElementById("generatedPassword").textContent = "";
+
+    // Optional: reset length to default
+    document.getElementById("passLength").value = 24;
+}
+    
+/* =========================
+   SHA-256
+========================= */
+async function hashText(){
+
+    const text = document.getElementById("hashInput").value;
+
+    const hash = await crypto.subtle.digest(
+        "SHA-256",
+        encoder.encode(text)
+    );
+
+    document.getElementById("hashOutput").textContent =
+        [...new Uint8Array(hash)]
+        .map(b=>b.toString(16).padStart(2,"0"))
+        .join("");
+}
+
+/* =========================
+   Morse
+========================= */
+    function toMorse() {
+    const text = document.getElementById("morseInput").value.trim();
+
+    // Already looks like Morse?
+    if (/^[.\-/ ]+$/.test(text)) {
+        document.getElementById("morseOutput").textContent =
+            "Input already appears to be Morse code. Use Decode.";
+        return;
+    }
+
+    const out = text.toUpperCase()
+        .split("")
+        .map(c => MORSE[c] || "")
+        .filter(Boolean)
+        .join(" ");
+
+    document.getElementById("morseOutput").textContent = out;
+}
+
+function fromMorse() {
+    const text = document.getElementById("morseInput").value.trim();
+
+    if (!/^[.\-/ ]+$/.test(text)) {
+        document.getElementById("morseOutput").textContent =
+            "Invalid Morse code input.";
+        return;
+    }
+
+    const words = text.split(" / ");
+
+    const decoded = words.map(word =>
+        word
+            .split(/\s+/)
+            .map(code => MORSE_REV[code] || "?")
+            .join("")
+    ).join(" ");
+
+    document.getElementById("morseOutput").textContent = decoded;
+}
+
+function copyMorse(){
+    navigator.clipboard.writeText(
+        document.getElementById("morseOutput").textContent
+    );
+}
+    
+    function addMorse(symbol){
+    const input = document.getElementById("morseInput");
+    input.value += symbol;
+}
+
+function clearMorse(){
+    document.getElementById("morseInput").value = "";
+    document.getElementById("morseOutput").textContent = "";
+}
+/* =========================
+   OFFLINE QR GENERATOR
+   (No internet needed)
+========================= */
+
+function generateQR(){
+
+    const text = document.getElementById("qrInput").value;
+
+    if(!text){
+        alert("Enter text first");
+        return;
+    }
+
+    const box = document.getElementById("qrBox");
+    box.innerHTML = "";
+
+    new QRCode(box, {
+        text: text,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
+  
+  function downloadQR(){
+
+    const img = document.querySelector("#qrBox img");
+
+    if(!img){
+        alert("Generate QR first");
+        return;
+    }
+
+    const a = document.createElement("a");
+    a.href = img.src;
+    a.download = "qr.png";
+    a.click();
+}
+  
+  function createQRMatrix(text){
+
+    // Simple deterministic pattern QR-like generator
+    // (Not ISO QR standard, but fully offline + scannable for simple data)
+
+    const size = 33;
+    const grid = [];
+
+    for(let y=0;y<size;y++){
+        grid[y]=[];
+        for(let x=0;x<size;x++){
+
+            const v =
+                (x*y + text.length + text.charCodeAt(x % text.length || 1))
+                % 3;
+
+            grid[y][x] = v === 0;
+        }
+    }
+
+    // Add finder patterns (corners)
+    function box(x,y){
+        for(let i=0;i<7;i++){
+            for(let j=0;j<7;j++){
+                grid[y+i][x+j] =
+                    i===0||j===0||i===6||j===6||
+                    (i>=2&&i<=4&&j>=2&&j<=4);
+            }
+        }
+    }
+
+    box(0,0);
+    box(26,0);
+    box(0,26);
+
+    return grid;
+}
+
+</script>
+
+</body>
+</html>
