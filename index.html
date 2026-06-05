@@ -526,15 +526,27 @@ function generateQR(){
     });
 }
   
-  function downloadQR(){
+  function downloadQR() {
+    const qrBox = document.getElementById("qrBox");
+    let img = qrBox.querySelector("img");
 
-    const img = document.querySelector("#qrBox img");
+    if (!img) {
+        // Try canvas fallback
+        const canvas = qrBox.querySelector("canvas");
+        if (!canvas) {
+            alert("Generate QR first");
+            return;
+        }
 
-    if(!img){
-        alert("Generate QR first");
+        // Convert canvas to data URL
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = "qr.png";
+        a.click();
         return;
     }
 
+    // If <img> exists
     const a = document.createElement("a");
     a.href = img.src;
     a.download = "qr.png";
