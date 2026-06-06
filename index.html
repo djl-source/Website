@@ -528,29 +528,26 @@ function generateQR(){
   
   function downloadQR() {
     const qrBox = document.getElementById("qrBox");
-    let img = qrBox.querySelector("img");
+    const canvas = qrBox.querySelector("canvas");
 
-    if (!img) {
-        // Try canvas fallback
-        const canvas = qrBox.querySelector("canvas");
-        if (!canvas) {
-            alert("Generate QR first");
-            return;
-        }
-
-        // Convert canvas to data URL
-        const a = document.createElement("a");
-        a.href = canvas.toDataURL("image/png");
-        a.download = "qr.png";
-        a.click();
+    if (!canvas) {
+        alert("Generate QR first");
         return;
     }
 
-    // If <img> exists
-    const a = document.createElement("a");
-    a.href = img.src;
-    a.download = "qr.png";
-    a.click();
+    // Convert canvas to Blob (more reliable than data URL)
+    canvas.toBlob(function(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "qr.png";
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+    }, "image/png");
 }
   
   function createQRMatrix(text){
